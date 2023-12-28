@@ -24,25 +24,20 @@ impl Display {
       let mut a = board.anr.a.clone();
       let mut b = board.anr.b.clone();
       let direction = shifter::Direction::Left;
-      let sign = a.read_nibble(direction);
-      buffer.push(if sign.value() == 9 { '-' } else { ' ' });
-      a.shift_with_nibble(direction, sign);
       for location in 0..14 {
         let mask = b.read_nibble(direction);
-        if mask.value() == 2 {
-          buffer.push('.');
-          b.shift_with_nibble(direction, mask);
-          continue;
-        }
         let digit = a.read_nibble(direction);
         buffer.push(match mask.value() {
           9 => ' ',
-          _ => if location == 11 {
+          _ => if location == 11 || location == 0 { //Signs
             if digit.value() == 9 { '-' } else { ' ' }
           } else {
             (digit.value() + 48) as char
           },
         });
+        if mask.value() == 2 {
+          buffer.push('.');
+        }
         a.shift_with_nibble(direction, digit);
         b.shift_with_nibble(direction, mask);
       }
