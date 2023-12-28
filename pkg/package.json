@@ -1,0 +1,12 @@
+{
+  "name": "hp45",
+  "version": "0.1.0",
+  "files": [
+    "hp45_bg.wasm",
+    "hp45.js",
+    "hp45.d.ts"
+  ],
+  "module": "hp45.js",
+  "types": "hp45.d.ts",
+  "sideEffects": false
+}
