@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=0.8"> 
+    <title>HP-45 Emulator - Scientific pocket calculator from 1973</title>
+    <style>
+    .monospace {
+      font-family: monaco,monospace;
+    }
+    .monospace button {
+      font-family: monaco,monospace;
+    }
+    .label {
+      font-family: monaco,monospace;
+      font-size:15px;
+      color: #DA3;
+      color: #DA3;
+    }
+    
+    body {background-color:#555; color: #DDD}
+    a {background-color:#555; color: #DDD}
+    
+    td { text-align: center; white-space: nowrap; }
+    th { white-space: nowrap; }
+    #keyboard td { padding:0; width:40px; height: 35px }
+    #keyboard td:nth-child(even) { width:25px; }
+    #numbers td { padding:0; width: 60px; }
+    button { width: 100%; height: 100%; font-size: 16px; font-weight: bold; padding-left:1px; padding-right:1px }
+    #numbers button { font-size:22px; background-color: #DDA; font-weight: normal }
+    #numbers button:hover { background-color: #BB8; }
+    #numbers td:nth-child(even) { width:40px; }
+        
+    .operation { font-size:22px; width:35px; }
+    .light { background-color: #AA8; color: black }
+    .light:hover { background-color: #886}
+    .black { background-color: #333; color: #DDD }
+    .black:hover { background-color: #111 }
+    .gray { background-color: #666; color: #DDD }
+    .gray:hover { background-color: #444 }
+    
+    th { user-select: none }
+    
+    #display {
+      color: red;
+      background-color: black;
+      font-size:40px;
+      white-space: pre-wrap
+    }
+    
+    #digits {
+      margin:0;
+    }
+    
+    table#keyboard {
+      user-select: none;
+    }
+    
+    .desktoponly {display:display;}
+
+    @media only screen and (max-width: 900px) {
+    .desktoponly {display:none;}
+    .main_flex {flex-direction: column}
+    }
+
+    .tiny {
+      font-size:6px;
+    }
+    </style>
+    <script type="module">
+      import init from "./pkg/hp45.js";
+      const wasm = await init();
+      wasm.run();
+    </script>
+    
+    <script>
+    pendingClicks = [];
+    //Map out all of the button clicks.
+    window.addEventListener("load", function() {
+      const keyboard = document.getElementById("keyboard");
+      const tbody = keyboard.children[0];
+      for(let i = 0; i < tbody.children.length; i++) {
+        const tr = tbody.children[i];
+        for(let j = 0; j < tr.children.length; j++) {
+          const td = tr.children[j];
+          const button = td.children[0];
+          if(button) {
+            button.addEventListener("mousedown", function(e) {
+              pendingClicks.push(parseInt(button.getAttribute('code')));
+            });
+          }
+        }
+      }
+      const numbers = document.getElementById("numbers");
+      const tbody1 = numbers.children[0];
+      for(let i = 0; i < tbody1.children.length; i++) {
+        const tr = tbody1.children[i];
+        for(let j = 0; j < tr.children.length; j++) {
+          const td = tr.children[j];
+          const button = td.children[0];
+          if(button) {
+            button.addEventListener("mousedown", function(e) {
+              pendingClicks.push(parseInt(button.getAttribute('code')));
+            });
+          }
+        }
+      }
+      
+      document.onkeydown = function (e) {
+        e = e || window.event;
+        if(e.keyCode == 27) { //ESC
+          pendingClicks.push(-1);
+        } else if(e.keyCode == 61 | e.keyCode == 13) { //=
+          pendingClicks.push(62);
+        } else if(e.keyCode == 48 || e.keyCode == 96) { //0
+          pendingClicks.push(36);
+        } else if(e.keyCode == 49 || e.keyCode == 97) { //1
+          pendingClicks.push(28);
+        } else if(e.keyCode == 50 || e.keyCode == 98) { //2
+          pendingClicks.push(27);
+        } else if(e.keyCode == 51 || e.keyCode == 99) { //3
+          pendingClicks.push(26);
+        } else if(e.keyCode == 52 || e.keyCode == 100) { //4
+          pendingClicks.push(20);
+        } else if(e.keyCode == 53 || e.keyCode == 101) { //5
+          pendingClicks.push(19);
+        } else if(e.keyCode == 54 || e.keyCode == 102) { //6
+          pendingClicks.push(18);
+        } else if(e.keyCode == 55 || e.keyCode == 103) { //7
+          pendingClicks.push(52);
+        } else if(e.keyCode == 56 || e.keyCode == 104) { //8
+          pendingClicks.push(51);
+        } else if(e.keyCode == 57 || e.keyCode == 105) { //9
+          pendingClicks.push(50);
+        } else if(e.keyCode == 42 || e.keyCode == 106) { //*
+          pendingClicks.push(30);
+        } else if(e.keyCode == 43 || e.keyCode == 107) { //+
+          pendingClicks.push(22);
+        } else if(e.keyCode == 45 || e.keyCode == 109) { //-
+          pendingClicks.push(54);
+        } else if(e.keyCode == 47 || e.keyCode == 111) { //divide
+          pendingClicks.push(38); event.preventDefault(); return false;
+        } else if(e.keyCode == 80) { //PI
+          pendingClicks.push(34);
+        } else if(e.keyCode == 190 || e.keyCode == 110) { //.
+          pendingClicks.push(35);
+        }
+      };
+      labelsTriggerButtons();
+    }, false);
+
+    //This function will be called by the WASM code.
+    function getPendingClick() {
+      let pending = pendingClicks.shift();
+      if(pending) {
+        return pending;
+      }
+    }
+    
+    function labelsTriggerButtons() {
+      var labels = document.querySelectorAll('label');
+
+      // Add mouseover event listener to all labels
+      labels.forEach(function (label) {
+        label.addEventListener('mousedown', function () {
+          // Get the associated button ID from the "for" attribute
+          var buttonId = label.getAttribute('for');
+          var button = document.getElementById(buttonId);
+
+          // Check if the button exists before triggering the mousedown event
+          if (button) {
+            // Manually trigger the mousedown event on the button
+            triggerEvent(button, 'mousedown');
+          }
+        });
+      });
+
+      // Function to manually trigger an event on an element
+      function triggerEvent(element, eventType) {
+        var event = new Event(eventType, {
+          bubbles: true,
+          cancelable: true,
+        });
+        element.dispatchEvent(event);
+      }
+    }
+    </script>
+  </head>
+  <body>
+  <div style="display: flex" class="main_flex">
+    <aside class="monospace desktoponly">
+    <table id="cnt">
+      <tr><th>Control & Timing</th></tr>
+      <tr><th>Current Address</th><td>0000</td></tr>
+      <tr><th>Return Address</th><td>0000</td></tr>
+      <tr><th>Pointer</th><td>0</td></tr>
+    </table>
+    <table id="status">
+      <tr><th></th><th>0</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th><th>A</th><th>B</th><th>C</th><th>D</th></tr>
+      <tr><th>Status</th><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
+    </table>
+    <div style="height:15px"></div>
+    <table id="anr">
+      <tr><th>Arith & Regs</th><th></th><th>Sign</th><th colspan=10>Mantissa</th><th colspan=3>Exponent</th>
+      <tr><th>Register A</th><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+      <tr><th>Register B</th><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+      <tr><th>Register C</th><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+      <tr><th>Register D</th><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+      <tr><th>Register E</th><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+      <tr><th>Register F</th><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+      <tr><th>Register M</th><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+    </table>
+    <div style="height:15px"></div>
+    <table id="ram">
+      <tr><th>Data Storage</th><th></th><th>Sign</th><th colspan=10>Mantissa</th><th colspan=3>Exponent</th>
+      <tr><th>Register 0</th><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+      <tr><th>Register 1</th><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+      <tr><th>Register 2</th><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+      <tr><th>Register 3</th><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+      <tr><th>Register 4</th><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+      <tr><th>Register 5</th><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+      <tr><th>Register 6</th><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+      <tr><th>Register 7</th><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+      <tr><th>Register 8</th><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+      <tr><th>Register 9</th><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+    </table>
+    </aside>
+    <article style="flex: 1; display:flex; flex-direction: column; align-items: center; padding-right: 20px">
+      <div id="display" class="monospace">               </div>
+      <div>
+        <table id="keyboard">
+          <tr valign="bottom" class="label"><td><label for="power"><i>y<sup>x</sup></i></label></td><td></td><td><label for="log">log</label></td><td></td><td><label for="ex">10<sup><i>x</i></sup></label></td><td></td><td><label for="fix">SCI</label></td><td></td><td><label for="clr"></label></td></tr>
+          <tr><td><button class="gray" code="6" id="power">1/<i>x</i></button></td><td></td><td><button class="gray" code="4" id="log">ln</button></td><td></td><td><button class="gray" code="3" id="ex"><i>e<sup>x</sup></i></button></td><td></td><td><button class="gray" code="2" id="fix">FIX</button></td><td></td><td><button code="-1" style="background-color:#DA3" id="clr"></button></td></tr>
+          <tr valign="bottom" class="label"><td><label for="sqrt"><i>√<span style="text-decoration:overline;">x</span></i></label></td><td></td><td><label for="right">🡆R</label></td><td></td><td><label for="sin">SIN<sup>-1</sup></label></td><td></td><td><label for="cos">COS<sup>-1</sup></label></td><td></td><td><label for="tan">TAN<sup>-1</sup></label></td></tr>
+          <tr><td><button code="46" id="sqrt" class="gray"><i>x</i><sup>2</sup></button></td><td></td><td><button code="44" id="right" class="black">🡆P</button></td><td></td><td><button code="43" id="sin" class="black">SIN</button></td><td></td><td><button code="42" id="cos" class="black">COS</button></td><td></td><td><button code="40" id="tan" class="black">TAN</button></td></tr>
+          <tr valign="bottom" class="label"><td><label for="xchg">n!</label></td><td></td><td><label for="rdown"><span style="text-decoration:overline;"><i>x</i></span>,s</label></td><td></td><td><label for="sto">🡆D,MS</label></td><td></td><td><label for="rcl">D,MS🡆</label></td><td></td><td><label for="percent">Δ%</label></td></tr>
+          <tr><td><button code="14" id="xchg" class="light"><i>x<span style="font-size:16px">&#x21C4;</span>y</i></button></td><td></td><td><button code="12" id="rdown" class="light">R🡻</button></td><td></td><td><button code="11" id="sto" class="light">STO</button></td><td></td><td><button code="10" id="rcl" class="light">RCL</button></td><td></td><td><button code="8" id="percent" class="gray">%</button></td></tr>
+          <tr valign="bottom" class="label"><td></td><td></td><td><label for="enter">DEG</label></td><td></td><td><label for="chs">RAD</label></td><td></td><td><label for="eex">GRD</label></td><td></td><td><label for="clx">CLEAR</label></td></tr>
+          <tr><td colspan=3><button code="62" class="light monospace" style="font-size:20px" id="enter">ENTER🡹</button></td><td></td><td><button code="59" class="light" id="chs">CHS</button></td><td></td><td><button code="58" class="light" id="eex">EEX</button></td><td></td><td><button code="56" class="light" id="clx">CL<i>X</i></button></td></tr>
+          <tr><td></td><td></td><td colspan=7 rowspan=8>
+             <table id="numbers">
+              <tr valign="bottom" class="label"><td><label for="n7">cm/in</label></td><td></td><td><label for="n8">kg/lb</label></td><td></td><td><label for="n9">ltr/gal</label></td></tr>
+              <tr><td><button code="52" id="n7">7</button></td><td></td><td><button code="51" id="n8">8</button></td><td></td><td><button code="50" id="n9">9</button></td></tr>
+              <tr><td></td></tr>
+              <tr><td><button code="20">4</button></td><td></td><td><button code="19">5</button></td><td></td><td><button code="18">6</button></td></tr>
+              <tr><td></td></tr>
+              <tr><td><button code="28">1</button></td><td></td><td><button code="27">2</button></td><td></td><td><button code="26">3</button></td></tr>
+              <tr valign="bottom" class="label"><td>LAST <i>X</i></td><td></td><td><label for="dot" style="font-size:20px">𝜋</label></td><td></td><td><label for="sum">Σ-</label></td></tr>
+              <tr><td><button code="36">0</button></td><td></td><td><button code="35" id="dot">.</button></td><td></td><td><button code="34" id="sum">Σ+</button></td></tr>
+            </table>
+            </td>
+          </tr>
+          <tr><td><button code="54" class="light operation">&minus;</button></td>
+          <tr><td></td></tr>
+          <tr><td><button code="22" class="light operation">&plus;</button></td><td></td>
+          <tr><td></td></tr>
+          <tr><td><button code="30" class="light operation">&times;</button></td><td></td>
+          <tr><td></td></tr>
+          <tr><td><button code="38" class="light operation">&divide;</button></td><td></td>
+          <tr><td></td></tr>
+        </table>
+      </div>
+      <div style="font-size:24px; user-select: none" class="monospace">HEWLETT•PACKARD 45</div>
+    </article>
+    <aside style="flex: 1">
+      <h4>How to use</h4>
+      The HP-45 used Reverse Polish Notation (RPN).<br />
+      You press the operation after inputting both numbers.
+      <ol>
+        <li>Start out by typing a few numbers. Example: <span class="monospace">1 2 3</span></li>
+        <li>Press ENTER🡹</li>
+        <li>Type in a few more numbers: <span class="monospace">4 5 6</span></li>
+        <li>Press the operation, Example: <span class="monospace">+</span></li>
+      </ol>
+
+      <h4>What is this?</h4>
+      This is an emulation of the <a href="https://en.wikipedia.org/wiki/HP-45">HP-45</a>, the world's first scientific pocket calculator to include a shift key, from 1973, running on two different CPUS - the HP Control &amp; Timing chip and the HP Arithmetic &amp; Register chip.
+      Alongside the two CPUs there are 3 ROM chips, a "Data Storage" (560 bits) chip, a keyboard, and a display, all being emulated with perfect synchronization.
+
+      <h4>Source code</h4>
+
+      It is my dream to build a chip library for anyone to be able to emulate any chip or board. Therefore, the code is subdivided into several layers of emulation:<br />
+      
+      <ul>
+        <li><a href="https://github.com/veniamin-ilmer/hp45">HP-45 GUI</a></li>
+        <li><a href="https://github.com/veniamin-ilmer/boards">Boards library</a></li>
+        <li><a href="https://github.com/veniamin-ilmer/chips">Chips library</a></li>
+      </ul>
+
+      <h4>Acknowledgments / Resources</h4>
+      This emulation would be lacking without the resources below:<br />
+      <ul>
+        <li><a href="https://archived.hpcalc.org/laporte/HP%2035%20Saga.htm">Jacques Laporte's HP-35 documentation</a></li>
+        <li><a href="https://patentimages.storage.googleapis.com/44/5c/ab/197897f4ecaacb/US4001569.pdf">The HP-45 patent</a></li>
+        <li><a href="https://www.hpmuseum.org/forum/thread-19853-post-171746.html#pid171746">Eric Smith's ROM</a>
+      </ul>
+    </aside>
+  </div>
+  
+  </body>
+</html>
