@@ -1,4 +1,4 @@
-use boards::hp_classic::Board;
+use crate::Board;
 use chips::shifter;
 
 pub(super) struct Display {
