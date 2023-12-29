@@ -11,7 +11,7 @@ mod display;
 mod keyboard;
 mod side_panel;
 
-const REFRESH_RATE: i32 = 60; //60 milliseconds => display at 17 hz.
+const REFRESH_RATE: i32 = 20; //20 milliseconds => display at 50 hz.
 const CLOCK_RATE: i32 = 280;  //cpu runs at 280 microseconds per opcode.
 const CYCLES: i32 = REFRESH_RATE * 1000 / CLOCK_RATE;
 
@@ -29,27 +29,22 @@ pub async fn run() {
 
   let mut board = Board::new(rom45packed::ROM.to_vec());
   let mut side_panel = side_panel::SidePanel::new();
-  let mut keyboard = keyboard::Keyboard::new();
+  let keyboard = keyboard::Keyboard::new();
   let mut display = display::Display::new();
 
   let window = web_sys::window().unwrap();
 
-  let mut counter = 0;
   loop {
     for _ in 0..CYCLES {
-      board.run_cycle(keyboard.current_scan_code);
+      board.run_cycle();
+      display.run_cycle(&board);
     }
 
+    keyboard.run_refresh_cycle(&mut board);
     display.run_refresh_cycle(&board);
-    if counter == 2 { //Runs every 150 milliseconds. This is necessary when there is an invalid result / flashing.
-      keyboard.run_refresh_cycle();
-      counter = 0;
-    } else {
-      counter += 1;
-    }
     
-    side_panel.print_anr(&board);
     side_panel.print_cnt(&board);
+    side_panel.print_anr(&board);
     side_panel.print_datastorage(&board);
 
     sleep(&window, REFRESH_RATE).await;
