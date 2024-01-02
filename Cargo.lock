@@ -60,6 +60,7 @@ dependencies = [
  "bitbybit",
  "log",
  "num-traits",
+ "wasm-log",
 ]
 
 [[package]]
