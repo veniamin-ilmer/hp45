@@ -1,14 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
-* Loop {
-*   Sleep till the next screen refresh
-*   Calculate how much instructions we should have run.
-*   Run those instructions.
-*   Run instructions until the calculated cycles matches the actual cycles.
-*   Run IO instructions which should only work on each refresh
-*   Draw everything.
-* }
 * @returns {Promise<void>}
 */
 export function run(): Promise<void>;

@@ -9,26 +9,9 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-wasm-bindgen = "0.2.89"
-boards = { path = "../boards" }
-chips = { path = "../chips" }
-log = "*"
-arbitrary-int = "*"
-console_error_panic_hook = "0.1.7"
-instant = { version = "0.1.12", features = [ "wasm-bindgen" ] }
-js-sys = "0.3.66"
-wasm-bindgen-futures = "0.4.39"
-
-[dependencies.web-sys]
-version = "0.3.66"
-features = [
-  'Window',
-  'Document',
-  'Element',
-  'HtmlCollection',
-  'HtmlInputElement',
-  'DomTokenList',
-]
+wasm-bindgen = "*"
+hp_classic = { path = "../hp_classic" }
+wasm-bindgen-futures = "*"
 
 [profile.release]
 lto = true
