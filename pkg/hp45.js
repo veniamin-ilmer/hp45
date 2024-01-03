@@ -443,7 +443,7 @@ function __wbg_get_imports() {
         return ret;
     };
     imports.wbg.__wbindgen_closure_wrapper69 = function(arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 26, __wbg_adapter_20);
+        const ret = makeMutClosure(arg0, arg1, 25, __wbg_adapter_20);
         return addHeapObject(ret);
     };
 
